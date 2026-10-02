@@ -105,8 +105,9 @@
 						</goals>
 					</execution>
 					<execution>
-						<id>post-unit-test</id>
-						<phase>test</phase>
+						<!-- Include both unit and integration coverage in SonarCloud's XML report. -->
+						<id>post-integration-test</id>
+						<phase>verify</phase>
 						<goals>
 							<goal>report</goal>
 						</goals>
