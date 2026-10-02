@@ -2,7 +2,6 @@
 
 Correction de la partie Docker du module DevOps. Amusez-vous bien avec GitHub Actions !
 
-This project is now mine.
 
 ## First CI with backend tests
 
@@ -30,8 +29,7 @@ Results are available in the repository's Actions tab. Local test reports are
 written to `simple-api/target/surefire-reports` and
 `simple-api/target/failsafe-reports`.
 
-References: [GitHub's Maven CI guide](https://docs.github.com/en/actions/tutorials/build-and-test-code/java-with-maven)
-and [Testcontainers 1.21.4 release notes](https://github.com/testcontainers/testcontainers-java/releases/tag/1.21.4).
+
 
 ## Continuous delivery and split workflows
 
@@ -98,8 +96,7 @@ the configured username, with the visibility you want.
 4. Add the token and variables listed above. For this public project, check
    eligibility for the free **OSS plan**, which supports branch and pull-request
    analysis. The standard Free plan limits branch analysis to the main branch;
-   it cannot run this pipeline's `develop` analysis. See the
-   [SonarCloud plan comparison](https://docs.sonarsource.com/sonarqube-cloud/administering-sonarcloud/managing-subscription/subscription-plans).
+   it cannot run this pipeline's `develop` analysis.
 5. When you choose to push these changes, check the Actions run and the linked
    SonarCloud dashboard. A failed gate or a five-minute gate timeout must fail
    `test-backend` and skip Docker publication.
@@ -135,21 +132,5 @@ images so servers and teammates can pull the same application artifact without
 rebuilding the source. Version tags make deployments traceable and allow a
 previous image to be selected for rollback.
 
-### Validate without publishing
 
-With Docker running and `JAVA_HOME` pointing to JDK 21:
 
-```sh
-mvn -B clean verify --file simple-api/pom.xml
-docker build -t tp-devops-simple-api:local ./simple-api
-docker build -t tp-devops-database:local ./database
-docker build -t tp-devops-httpd:local ./http-server
-```
-
-These commands build locally and never push images. The authenticated SonarCloud
-gate and Docker Hub publication need the account setup above and an actual
-GitHub Actions run before they can be considered verified.
-
-References: [GitHub reusable workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows),
-[publishing Docker images](https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images),
-and [SonarCloud with GitHub Actions](https://docs.sonarsource.com/sonarqube-cloud/analyzing-source-code/ci-based-analysis/github-actions-for-sonarcloud).
