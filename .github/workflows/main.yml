@@ -1,23 +1,35 @@
-name: CI devops 2025
+name: Backend CI
 
+# Validate every push to main and every pull request.
 on:
   push:
     branches: [main]
   pull_request:
 
+# The workflow only needs to read the repository contents.
+permissions:
+  contents: read
+
 jobs:
   test-backend:
+    # Docker on the hosted runner lets Testcontainers start PostgreSQL for the ITs.
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      # Fetch the source code before building the backend.
+      - name: Check out repository
+        uses: actions/checkout@v4
 
+      # Match the Java version in pom.xml and reuse downloaded Maven dependencies.
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: temurin
           cache: maven
+          cache-dependency-path: simple-api/pom.xml
 
+      # Batch mode avoids interactive output; clean verify runs unit and integration
+      # tests, packages the application, and fails the job if either test suite fails.
       - name: Build and test with Maven
         working-directory: simple-api
         run: mvn -B clean verify
