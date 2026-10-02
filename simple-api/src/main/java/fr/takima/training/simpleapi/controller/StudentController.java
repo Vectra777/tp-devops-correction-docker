@@ -11,7 +11,6 @@ import java.net.URI;
 import java.util.Optional;
 
 @RestController
-@CrossOrigin
 @RequestMapping(value = "/students")
 public class StudentController {
     private final StudentService studentService;
@@ -36,10 +35,10 @@ public class StudentController {
     }
 
     @PostMapping
-    public ResponseEntity<Object> addStudent(@RequestBody Student student) {
+    public ResponseEntity<Object> addStudent(@RequestBody StudentRequest request) {
         Student savedStudent;
         try {
-            savedStudent = this.studentService.addStudent(student);
+            savedStudent = this.studentService.addStudent(request.toStudent());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -50,14 +49,19 @@ public class StudentController {
     }
 
     @PutMapping(value = "/{id}")
-    public ResponseEntity<Object> updateStudent(@RequestBody Student student, @PathVariable(name="id") long id) {
+    public ResponseEntity<Object> updateStudent(@RequestBody StudentRequest request, @PathVariable(name="id") long id) {
         Optional<Student> studentOptional = Optional.ofNullable(studentService.getStudentById(id));
         if (studentOptional.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
+        Student student = request.toStudent();
         student.setId(id);
-        this.studentService.addStudent(student);
+        try {
+            this.studentService.addStudent(student);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
         return ResponseEntity.ok(student);
     }
 
