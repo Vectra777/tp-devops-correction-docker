@@ -116,18 +116,18 @@ alone blocks delivery, but cannot prevent a direct push to the branch.
 
 ### Exercise answers
 
-**2-2 — Why use secured variables?** GitHub Actions secrets keep credentials out
+**2-2  Why use secured variables?** GitHub Actions secrets keep credentials out
 of source code and Git history, encrypt them at rest, and make them available
 to the authorized workflow steps. They also mask known secret values in logs.
 Tokens can be rotated without changing the code; avoid printing them even with
 masking enabled.
 
-**2-3 — Why `needs: test-backend`?** It orders publication after successful tests
+**2-3  Why `needs: test-backend`?** It orders publication after successful tests
 and quality analysis. Without it, jobs can run in parallel and publish images
 from code whose tests or gate later fail. The exercise's `build-and-test-backend`
 is named `test-backend` here; `needs` must match the actual job ID.
 
-**2-4 — Why push Docker images?** A registry stores and distributes the built
+**2-4  Why push Docker images?** A registry stores and distributes the built
 images so servers and teammates can pull the same application artifact without
 rebuilding the source. Version tags make deployments traceable and allow a
 previous image to be selected for rollback.
