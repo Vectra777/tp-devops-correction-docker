@@ -3,9 +3,9 @@ name: CI and CD
 # main is this repository's equivalent of the exercise's master branch.
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 # The workflow only needs to read the repository contents.
 permissions:
