@@ -35,20 +35,27 @@ written to `simple-api/target/surefire-reports` and
 
 This repository uses `main` where the exercise says `master`.
 
-| Event | Backend tests | SonarCloud gate | Docker Hub publication |
+| Event | Backend and frontend tests | SonarCloud gate | Docker Hub publication |
 | --- | --- | --- | --- |
 | Push to `main` | Yes | Required | Only after tests and gate pass |
 | Push to `develop` | Yes | Required | No |
 | Same-repository PR to `main` or `develop` | Yes | Required | No |
 | Fork or Dependabot PR to `main` or `develop` | Yes | Unavailable without secrets | No |
 
-The entry point calls two separate reusable workflows with `workflow_call`:
-`test-backend.yml` runs tests and analysis; `publish-docker.yml` builds and
-publishes images. The publishing call has `needs: test-backend` and a condition
-requiring a push to `main`. This preserves the dependency even though the jobs
-live in separate files. It builds the same commit that passed CI.
+The entry point exposes five jobs: `test-backend`, `test-frontend`,
+`publish-backend`, `publish-database`, and `publish-frontend`. The two test jobs
+run in parallel through reusable workflows. The backend runs Maven tests and
+SonarCloud; the frontend builds Apache, checks its configuration with `httpd -t`,
+and verifies HTTP forwarding to a mock backend. There is no separate frontend UI
+application in this repository.
 
-The publishing workflow uses Docker Buildx and logs in with `docker/login-action`.
+Each publishing job calls `publish-docker.yml` with its own context and image
+name. All three require both test jobs to pass and run only on pushes to `main`.
+They run independently in parallel and build the same commit that passed CI.
+Publication is not atomic: if one image job fails, another may already have
+published its image. Use matching SHA tags when selecting a release.
+
+Each publishing job uses Docker Buildx and logs in with `docker/login-action`.
 Each `docker/build-push-action` step has its own build context:
 
 | Context | Docker Hub image |
@@ -60,6 +67,27 @@ Each `docker/build-push-action` step has its own build context:
 Each image receives `latest` and a full Git commit SHA tag. The SHA tag lets you
 select a specific tested revision for deployment or rollback. Building and
 pushing an image does not deploy or restart an application.
+
+### Manual rollback
+
+In GitHub, open **Actions → Rollback Docker images → Run workflow**, select
+`main`, and enter the full 40-character lowercase commit SHA of a previously
+published working release. The workflow uses the existing Docker Hub secrets.
+It checks that all three SHA-tagged images exist, then restores their `latest`
+tags to those images without rebuilding. The selected SHA tags stay available.
+Normal main publication and rollback share a concurrency lock to prevent them
+from updating tags at the same time.
+
+To demonstrate the bonus, publish release A and then release B, run rollback
+with A's SHA, and verify that each image's `latest` digest matches its A tag in
+Docker Hub. The workflow summary records the restored version for each image.
+A nonexistent SHA fails the checks before any tags are changed.
+
+This is a manual registry rollback. It does not deploy containers, restart an
+application, or restore database data. A deployed application must pull the
+restored images and recreate its containers separately. Tag updates across
+three repositories are not atomic; if an update fails partway through, rerun
+the rollback. A later successful main pipeline will publish a new `latest`.
 
 ### Configure accounts before enabling delivery
 
@@ -122,7 +150,7 @@ to the authorized workflow steps. They also mask known secret values in logs.
 Tokens can be rotated without changing the code; avoid printing them even with
 masking enabled.
 
-**2-3  Why `needs: test-backend`?** It orders publication after successful tests
+**2-3  Why `needs: [test-backend, test-frontend]`?** It orders publication after successful backend and frontend tests
 and quality analysis. Without it, jobs can run in parallel and publish images
 from code whose tests or gate later fail. The exercise's `build-and-test-backend`
 is named `test-backend` here; `needs` must match the actual job ID.

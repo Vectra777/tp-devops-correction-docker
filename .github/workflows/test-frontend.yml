@@ -1,0 +1,41 @@
+name: Frontend proxy tests
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test-frontend:
+    # The frontend is an Apache reverse proxy, with no separate UI test suite.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build frontend image and validate Apache configuration
+        run: |
+          docker build -t frontend-test ./http-server
+          docker run --rm frontend-test httpd -t
+
+      - name: Verify requests reach the backend through Apache
+        run: |
+          docker network create frontend-test
+          # A mock backend isolates proxy behavior from Java and PostgreSQL.
+          docker run -d --name simple-api --network frontend-test python:3.12-alpine \
+            sh -c 'mkdir -p /tmp/www && echo proxy-ok > /tmp/www/index.html && python -m http.server 8080 --directory /tmp/www'
+          docker run -d --name frontend-test --network frontend-test \
+            -p 127.0.0.1:8080:80 frontend-test
+          curl --fail --silent --show-error --retry 20 --retry-delay 1 \
+            --retry-all-errors --max-time 5 http://127.0.0.1:8080/ > /tmp/frontend-response
+          grep -Fx 'proxy-ok' /tmp/frontend-response
+
+      - name: Show logs and clean up containers
+        if: always()
+        run: |
+          docker logs frontend-test || true
+          docker logs simple-api || true
+          docker rm -f frontend-test simple-api || true
+          docker network rm frontend-test || true
